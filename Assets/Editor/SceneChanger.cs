@@ -167,7 +167,7 @@ namespace SVerdeTools.SceneChanger{
             {
                 EditorGUILayout.BeginVertical("Box");
                 EditorGUILayout.LabelField("There are no scenes");
-                GUI.color = Color.green;
+                GUI.color = Color.green; 
                 if (GUILayout.Button("Open Build Settings"))
                 {
                     EditorWindow.GetWindow(System.Type.GetType("UnityEditor.BuildPlayerWindow,UnityEditor"));
