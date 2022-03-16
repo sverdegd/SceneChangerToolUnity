@@ -1,16 +1,14 @@
-﻿//SceneChanger Tool by SVerde
-//https://github.com/sverdegd
-//contact@sverdegd.com
-
 using UnityEditor;
 using UnityEngine;
 using UnityEditor.SceneManagement;
 using UnityEngine.SceneManagement;
 using System.Collections.Generic;
 
-namespace SVerdeTools.SceneChanger{
+namespace sverde
+{
 
-    public class SceneChanger : EditorWindow{
+    public class SceneChanger : EditorWindow
+    {
 
         public static SceneChanger window;
 
@@ -28,8 +26,9 @@ namespace SVerdeTools.SceneChanger{
 
         static GUIContent wTitle = new GUIContent();
 
-        [MenuItem("SVerdeTools/Scene Changer %#e")]
-        public static void OpenWindow(){
+        [MenuItem("Tools/Scene Changer %#e")]
+        public static void OpenWindow()
+        {
             if (window == null)
             {
                 window = (SceneChanger)GetWindow(typeof(SceneChanger));
@@ -57,17 +56,18 @@ namespace SVerdeTools.SceneChanger{
 
             EditorGUI.BeginChangeCheck();
             onlyInBuildSettings = EditorGUILayout.ToggleLeft("Show only scenes that are in Build Settings", onlyInBuildSettings);
-            if (EditorGUI.EndChangeCheck()) {
+            if (EditorGUI.EndChangeCheck())
+            {
                 EditorPrefs.SetBool("SceneChanger.OnlyInBuildSettings", onlyInBuildSettings);
                 Reload();
             }
             EditorGUI.BeginChangeCheck();
-            closeWhenChange = EditorGUILayout.ToggleLeft("Close the window after switching scenes", closeWhenChange);
+            closeWhenChange = EditorGUILayout.ToggleLeft("Close the window after changing the scene", closeWhenChange);
             if (EditorGUI.EndChangeCheck())
             {
                 EditorPrefs.SetBool("SceneChanger.CloseWhenChange", closeWhenChange);
             }
-            
+
             EditorGUILayout.Space();
 
             if (totalScenes != 0)
@@ -109,14 +109,16 @@ namespace SVerdeTools.SceneChanger{
 
                 #endregion /Search
 
-                if (searchOptions.Count != 0) {
+                if (searchOptions.Count != 0)
+                {
                     index = EditorGUILayout.Popup(index, searchOptions.ToArray());
 
                     GUI.color = Color.green;
                     if (GUILayout.Button("Open Scene"))
                     {
-                        ChangeScene();
-                        if (closeWhenChange) Close();
+                        if (ChangeScene()) {
+                            if (closeWhenChange) Close();
+                        }
                     }
                     GUI.color = Color.white;
                     EditorGUILayout.Space();
@@ -135,11 +137,13 @@ namespace SVerdeTools.SceneChanger{
                 {
                     if (scene - 1 >= 0)
                     {
-                        EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo();
-                        EditorSceneManager.OpenScene(paths[scene - 1]);
-                        Print("Previous scene loaded, " + options[scene - 1]);
-                        Reload();
-                        if (closeWhenChange) Close();
+                        if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+                        {
+                            EditorSceneManager.OpenScene(paths[scene - 1]);
+                            Print("Previous scene loaded, " + options[scene - 1]);
+                            Reload();
+                            if (closeWhenChange) Close();
+                        }
                     }
                     else
                     {
@@ -150,11 +154,13 @@ namespace SVerdeTools.SceneChanger{
                 {
                     if (scene + 1 < totalScenes)
                     {
-                        EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo();
-                        EditorSceneManager.OpenScene(paths[scene + 1]);
-                        Print("Next scene loaded, " + options[scene + 1]);
-                        Reload();
-                        if (closeWhenChange) Close();
+                        if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+                        {
+                            EditorSceneManager.OpenScene(paths[scene + 1]);
+                            Print("Next scene loaded, " + options[scene + 1]);
+                            Reload();
+                            if (closeWhenChange) Close();
+                        }
                     }
                     else
                     {
@@ -195,34 +201,42 @@ namespace SVerdeTools.SceneChanger{
             }
         }
 
-        void ChangeScene()
+        bool ChangeScene()
         {
-            EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo();
-
-            int aux = 0;
-           
-            for (int i = 0; i < options.Length; i++)
+            if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
             {
-                if (options[i] == searchOptions[index])
+
+                int aux = 0;
+
+                for (int i = 0; i < options.Length; i++)
                 {
-                    aux = i;
-                    break;
+                    if (options[i] == searchOptions[index])
+                    {
+                        aux = i;
+                        break;
+                    }
                 }
+
+                EditorSceneManager.OpenScene(paths[aux]);
+                Reload();
+                Print("Loaded scene, " + options[aux]);
+                return true;
             }
-             
-            EditorSceneManager.OpenScene(paths[aux]);
-            Reload();
-            Print("Loaded scene, " + options[aux]);
+            else
+            {
+                return false;
+            }
+            
         }
 
         void Reload()
         {
             index = 0;
             searchString = "";
-           
+
             if (onlyInBuildSettings)
             {
-                SetupOnlyBuild();
+                SetupBuildOnly();
             }
             else
             {
@@ -230,11 +244,11 @@ namespace SVerdeTools.SceneChanger{
             }
         }
 
-        void SetupOnlyBuild()
+        void SetupBuildOnly()
         {
             totalScenes = EditorSceneManager.sceneCountInBuildSettings;
-            
-            if(totalScenes == 0)
+
+            if (totalScenes == 0)
             {
                 return;
             }
@@ -284,7 +298,7 @@ namespace SVerdeTools.SceneChanger{
             {
                 paths[i] = AssetDatabase.GUIDToAssetPath(guids[i]);
                 options[i] = GetName(paths[i]);
-               
+
                 if (GetName(EditorSceneManager.GetActiveScene().path) == options[i])
                 {
                     scene = i;
@@ -300,13 +314,14 @@ namespace SVerdeTools.SceneChanger{
             return path.Substring(0, path.Length - 6).Substring(path.LastIndexOf('/') + 1);
         }
 
-        void UpdateSceneInfo(){
+        void UpdateSceneInfo()
+        {
             sceneInfo = "Current scene: \"" + options[scene] + "\" (" + (scene + 1).ToString() + "/" + totalScenes.ToString() + ")";
         }
 
         void Print(string msg)
         {
-            Debug.Log("<color=green>SceneChanger: </color>" + msg);
+            Debug.Log("<color=lime>SceneChanger: </color>" + msg);
         }
     }
 }
